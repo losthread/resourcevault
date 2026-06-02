@@ -1,32 +1,36 @@
-root
+root/
 ├── .git/
 ├── documentation/
-|   ├── flow.txt
-|   └── structure.txt
-|
+│   ├── flow.txt
+│   └── structure.txt
+│
+├── backend/
+│   └── src/
+│       └── app/
+│
 ├── frontend/
-|   ├── node_modules/ (dependencies)
-|   ├── src/
-|   |   ├── components/
-|   |   |   ├── blocks/ (custom small components)
-|   |   |   └── ui/ (shadcn components)
-|   |   |   |   ├── button.jsx
-|   |   |   |   └── input.jsx
-|   |   |   └── Navbar.jsx
-|   |   ├── App.jsx
-|   |   ├── index.css
-|   |   └── main.jsx
-|   |   
-|   ├── .gitignore
-|   ├── components.json
-|   ├── eslint.config.js
-|   ├── index.html
-|   ├── jsconfig.json
-|   ├── package-lock.json
-|   ├── package.json
-|   ├── README.md
-|   ├── tailwind.config.js
-|   └── vite.config.js
-|
+│   ├── node_modules/ (dependencies)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── blocks/ (custom small components)
+│   │   │   ├── ui/ (shadcn components)
+│   │   │   │   ├── button.jsx
+│   │   │   │   └── input.jsx
+│   │   │   └── Navbar.jsx
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   │   
+│   ├── .gitignore
+│   ├── components.json
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── jsconfig.json
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── README.md
+│   ├── tailwind.config.js
+│   └── vite.config.js
+│
 ├── .gitignore
 └── structure.txt
