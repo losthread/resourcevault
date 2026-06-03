@@ -5,6 +5,3 @@ __all__ = []
 
 # define package version
 __version__ = "1.0.0"
-
-# print a welcome message
-print(f"Welcome to arcvault version {__version__}")
