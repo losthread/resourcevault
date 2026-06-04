@@ -190,3 +190,29 @@ def update_note(note_id, note):
 
   return {"note_id": note_id}
 
+# delete a personal note
+def delete_note(note_id):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+
+  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+  cursor.execute(
+    """
+      DELETE FROM notes
+      WHERE note_id = %s AND user_id = %s
+      RETURNING note_id
+    """,
+    (note_id, 1)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+
+  if row is None:
+    conn.commit()
+    cursor.close()
+    return {"error": "Note not found or unauthorized"}
+
+  note_id = row[0]
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()

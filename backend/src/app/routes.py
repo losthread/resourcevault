@@ -38,3 +38,8 @@ async def create_note(note: NoteCreate) -> dict:
 @router.put('/notes/{note_id}')
 async def update_note(note_id: int, note: NoteUpdate) -> dict:
   return crud.update_note(note_id, note)
+
+# delete a private note
+@router.delete('/notes/{note_id}')
+async def delete_note(note_id: int) -> dict:
+  return crud.delete_note(note_id)
