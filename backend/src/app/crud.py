@@ -1,5 +1,5 @@
 from .db import conn
-from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate
+from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, NoteResponse
 from datetime import datetime
 
 # return all the sections
@@ -112,6 +112,36 @@ def create_post(post):
 
   return {"post_id": post_id}
 
+# update a post
+def update_post(post_id, post):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+
+  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+  cursor.execute(
+    """
+      UPDATE posts
+      SET title = %s, content = %s, updated_at = NOW()
+      WHERE post_id = %s AND user_id = %s
+      RETURNING post_id
+    """,
+    (post.title, post.content, post_id, 1)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+
+  if row is None:
+    conn.commit()
+    cursor.close()
+    return {"error": "Post not found or unauthorized"}
+
+  post_id = row[0]
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()
+
+  return {"post_id": post_id}
+
 # create a folder
 def create_folder(folder):
   # create a cursor to execute SQL
@@ -135,6 +165,30 @@ def create_folder(folder):
   cursor.close()
 
   return {"folder_id": folder_id}
+
+# update a folder
+def update_folder(folder_id, folder):
+  cursor = conn.cursor()
+  
+  cursor.execute(
+    """
+      UPDATE folders
+      SET name = %s, description = %s, slug = %s, updated_at = NOW()
+      WHERE folder_id = %s AND user_id = %s
+      RETURNING folder_id
+    """,
+    (folder.name, folder.description, folder.slug, folder_id, 1)
+  )
+  row = cursor.fetchone()
+  
+  if row is None:
+    conn.commit()
+    cursor.close()
+    return {"error": "Folder not found or unauthorized"}
+  
+  conn.commit()
+  cursor.close()
+  return {"folder_id": row[0]}
 
 # create a personal note
 def create_note(note):
@@ -216,3 +270,36 @@ def delete_note(note_id):
   # permanently save changes to DB and close
   conn.commit()
   cursor.close()
+
+# return a personal note
+def get_notes(post_id):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+
+  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+  cursor.execute(
+    """
+      SELECT note_id, body, created_at 
+      FROM notes
+      WHERE post_id = %s AND user_id = %s
+    """,
+    (post_id, 1)
+  )
+
+  # fetch query result as a list of tuples
+  notes = cursor.fetchall()
+
+  # convert list to FolderResponse pydantic object 
+  response = list()
+  for row in notes:
+    note = NoteResponse(
+      note_id = row[0],
+      body = row[1],
+      created_at = row[2]
+    )
+    response.append(note)
+
+  # close cursor
+  cursor.close()
+  
+  return response

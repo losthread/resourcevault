@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, FolderCreate, NoteCreate, NoteResponse, NoteUpdate
+from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, PostUpdate, FolderCreate, NoteCreate, NoteResponse, NoteUpdate
 from . import crud
 
 router = APIRouter()
@@ -24,13 +24,23 @@ async def get_posts() -> list[PostResponse]:
 async def create_post(post: PostCreate) -> dict:
   return crud.create_post(post)
 
-# create a folder (type hint auto validates input using pydantic model)
+# update a post
+@router.put('/posts/{post_id}')
+async def update_post(post_id: int, post: PostUpdate) -> dict:
+  return crud.update_post(post_id, post)
+
+# create a folder
 @router.post('/folders')
 async def create_folder(folder: FolderCreate) -> dict:
   return crud.create_folder(folder)
 
+# update folder
+@router.put('/folders/{folder_id}')
+async def update_folder(folder_id: int, folder: FolderCreate) -> dict:
+  return crud.update_folder(folder_id, folder)
+
 # create a private note
-@router.post('/notes/{post_id}')
+@router.post('/notes')
 async def create_note(note: NoteCreate) -> dict:
   return crud.create_note(note)
 
@@ -43,3 +53,8 @@ async def update_note(note_id: int, note: NoteUpdate) -> dict:
 @router.delete('/notes/{note_id}')
 async def delete_note(note_id: int) -> dict:
   return crud.delete_note(note_id)
+
+# get a private note
+@router.get('/notes/{post_id}')
+async def get_notes(post_id: int) -> list[NoteResponse]:
+  return crud.get_notes(post_id)

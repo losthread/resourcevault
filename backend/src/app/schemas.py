@@ -61,11 +61,8 @@ class NoteUpdate(BaseModel):
 
 class NoteResponse(BaseModel):
   note_id: int
-  post_id: int
-  user_id: int
   body: str
   created_at: datetime
-  updated_at: datetime
 
 # # Auth
 # class UserRegister(BaseModel):
