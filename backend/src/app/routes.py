@@ -29,7 +29,12 @@ async def create_post(post: PostCreate) -> dict:
 async def create_folder(folder: FolderCreate) -> dict:
   return crud.create_folder(folder)
 
-# create note
+# create a private note
 @router.post('/notes/{post_id}')
 async def create_note(note: NoteCreate) -> dict:
   return crud.create_note(note)
+
+# update a private note
+@router.put('/notes/{note_id}')
+async def update_note(note_id: int, note: NoteUpdate) -> dict:
+  return crud.update_note(note_id, note)

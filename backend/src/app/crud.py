@@ -136,6 +136,7 @@ def create_folder(folder):
 
   return {"folder_id": folder_id}
 
+# create a personal note
 def create_note(note):
   # create a cursor to execute SQL
   cursor = conn.cursor()
@@ -158,3 +159,34 @@ def create_note(note):
   cursor.close()
 
   return {"note_id": note_id}
+
+# update a personal note
+def update_note(note_id, note):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+
+  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+  cursor.execute(
+    """
+      UPDATE notes
+      SET body = %s, updated_at = NOW()
+      WHERE note_id = %s AND user_id = %s
+      RETURNING note_id 
+    """,
+    (note.body, note_id, 1)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+
+  if row is None:
+    conn.commit()
+    cursor.close()
+    return {"error": "Note not found or unauthorized"}
+
+  note_id = row[0]
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()
+
+  return {"note_id": note_id}
+
