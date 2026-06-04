@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, FolderCreate
+from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, FolderCreate, NoteCreate, NoteResponse, NoteUpdate
 from . import crud
 
 router = APIRouter()
@@ -28,3 +28,8 @@ async def create_post(post: PostCreate) -> dict:
 @router.post('/folders')
 async def create_folder(folder: FolderCreate) -> dict:
   return crud.create_folder(folder)
+
+# create note
+@router.post('/notes/{post_id}')
+async def create_note(note: NoteCreate) -> dict:
+  return crud.create_note(note)

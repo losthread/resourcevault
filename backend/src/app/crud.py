@@ -135,3 +135,26 @@ def create_folder(folder):
   cursor.close()
 
   return {"folder_id": folder_id}
+
+def create_note(note):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+
+  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+  cursor.execute(
+    """
+      INSERT INTO notes(user_id, post_id, body)
+      VALUES(%s, %s, %s)
+      RETURNING note_id
+    """,
+    (1, note.post_id, note.body)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+  note_id = row[0]
+
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()
+
+  return {"note_id": note_id}

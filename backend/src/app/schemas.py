@@ -51,6 +51,22 @@ class TagResponse(BaseModel):
   tag_id: int
   name: str
 
+# Notes
+class NoteCreate(BaseModel):
+  post_id: int
+  body: str
+
+class NoteUpdate(BaseModel):
+  body: str
+
+class NoteResponse(BaseModel):
+  note_id: int
+  post_id: int
+  user_id: int
+  body: str
+  created_at: datetime
+  updated_at: datetime
+
 # # Auth
 # class UserRegister(BaseModel):
 #   username: str
