@@ -111,3 +111,27 @@ def create_post(post):
   cursor.close()
 
   return {"post_id": post_id}
+
+# create a folder
+def create_folder(folder):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+
+  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+  cursor.execute(
+    """
+      INSERT INTO folders(user_id, section_id, name, description, slug)
+      VALUES(%s, %s, %s, %s, %s)
+      RETURNING folder_id
+    """,
+    (1, folder.section_id, folder.name, folder.description, folder.slug)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+  folder_id = row[0]
+
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()
+
+  return {"folder_id": folder_id}

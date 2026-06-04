@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate
+from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, FolderCreate
 from . import crud
 
 router = APIRouter()
@@ -23,3 +23,8 @@ async def get_posts() -> list[PostResponse]:
 @router.post('/posts')
 async def create_post(post: PostCreate) -> dict:
   return crud.create_post(post)
+
+# create a folder (type hint auto validates input using pydantic model)
+@router.post('/folders')
+async def create_folder(folder: FolderCreate) -> dict:
+  return crud.create_folder(folder)
