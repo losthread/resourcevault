@@ -142,6 +142,35 @@ def update_post(post_id, post):
 
   return {"post_id": post_id}
 
+# delete a post
+def delete_post(post_id):
+  # create a cursor to execute sql
+  cursor = conn.cursor()
+
+  # execute sql query
+  cursor.execute(
+    """
+      DELETE FROM posts
+      WHERE post_id = %s AND user_id = %s
+      RETURNING post_id
+    """,
+    (post_id, 1)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+
+  if row is None:
+    conn.commit()
+    cursor.close()
+    return {"error": "Post not found or unauthorized"}
+  
+  post_id = row[0]
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()
+
+  return {"message": "Post deleted successfully"}
+
 # create a folder
 def create_folder(folder):
   # create a cursor to execute SQL
@@ -189,6 +218,35 @@ def update_folder(folder_id, folder):
   conn.commit()
   cursor.close()
   return {"folder_id": row[0]}
+
+# delete a folder
+def delete_folder(folder_id):
+  # create a cursor to execute sql
+  cursor = conn.cursor()
+
+  # execute sql query
+  cursor.execute(
+    """
+      DELETE FROM folders
+      WHERE folder_id = %s AND user_id = %s
+      RETURNING folder_id
+    """,
+    (folder_id, 1)
+  )
+  # store returned tuple
+  row = cursor.fetchone()
+
+  if row is None:
+    conn.commit()
+    cursor.close()
+    return {"error": "Folder not found or unauthorized"}
+  
+  folder_id = row[0]
+  # permanently save changes to DB and close
+  conn.commit()
+  cursor.close()
+
+  return {"message": "Folder deleted successfully"}
 
 # create a personal note
 def create_note(note):
@@ -271,6 +329,8 @@ def delete_note(note_id):
   conn.commit()
   cursor.close()
 
+  return {"message": "Note deleted successfully"}
+
 # return a personal note
 def get_notes(post_id):
   # create a cursor to execute SQL
@@ -303,3 +363,4 @@ def get_notes(post_id):
   cursor.close()
   
   return response
+

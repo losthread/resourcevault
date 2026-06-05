@@ -29,15 +29,25 @@ async def create_post(post: PostCreate) -> dict:
 async def update_post(post_id: int, post: PostUpdate) -> dict:
   return crud.update_post(post_id, post)
 
+# delete a post
+@router.delete('/posts/{post_id}')
+async def delete_post(post_id: int) -> dict:
+  return crud.delete_post(post_id)
+
 # create a folder
 @router.post('/folders')
 async def create_folder(folder: FolderCreate) -> dict:
   return crud.create_folder(folder)
 
-# update folder
+# update a folder
 @router.put('/folders/{folder_id}')
 async def update_folder(folder_id: int, folder: FolderCreate) -> dict:
   return crud.update_folder(folder_id, folder)
+
+# delete a folder
+@router.delete('/folders/{folder_id}')
+async def delete_folder(folder_id: int) -> dict:
+  return crud.delete_folder(folder_id)
 
 # create a private note
 @router.post('/notes')
