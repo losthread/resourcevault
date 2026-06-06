@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, PostUpdate, FolderCreate, NoteCreate, NoteResponse, NoteUpdate
+from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, PostUpdate, FolderCreate, NoteCreate, NoteResponse, NoteUpdate, VoteCreate
 from . import crud
 
 router = APIRouter()
@@ -68,3 +68,28 @@ async def delete_note(note_id: int) -> dict:
 @router.get('/notes/{post_id}')
 async def get_notes(post_id: int) -> list[NoteResponse]:
   return crud.get_notes(post_id)
+
+# get user's vote on a post
+@router.get('/votes/{post_id}')
+async def get_votes(post_id: int) -> dict | None:
+  return crud.get_votes(post_id)
+
+# Total votes on a post
+@router.get('/posts/{post_id}/votes')
+async def get_post_votes(post_id: int) -> dict:
+  return crud.get_post_votes(post_id)
+
+# Create a vote
+@router.post('/votes')
+async def create_vote(vote: VoteCreate) -> dict:
+  return crud.create_vote(vote)
+
+# Update a vote
+@router.put('/votes/{post_id}')
+async def update_vote(post_id: int, vote: VoteCreate) -> dict:
+  return crud.update_vote(post_id, vote)
+
+# Delete a vote
+@router.delete('/votes/{post_id}')
+async def delete_vote(post_id: int) -> dict:
+  return crud.delete_vote(post_id)

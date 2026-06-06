@@ -56,12 +56,6 @@ class VoteCreate(BaseModel):
   post_id: int
   is_upvote: bool # true for upvote and false for downvote
 
-class VoteResponse(BaseModel):
-  post_id: int
-  user_id: int
-  is_upvote: bool
-  created_at: datetime
-
 # Notes
 class NoteCreate(BaseModel):
   post_id: int

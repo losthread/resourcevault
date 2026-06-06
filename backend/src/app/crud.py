@@ -1,7 +1,26 @@
 from .db import conn
-from .schemas import SectionResponse, FolderResponse, PostResponse, PostCreate, NoteResponse
+from .schemas import SectionResponse, FolderResponse, PostResponse
 from datetime import datetime
+from fastapi import HTTPException
+from psycopg2.errors import UniqueViolation, ForeignKeyViolation
 
+# error helper function
+def handle_error(e, cursor):
+  conn.rollback()
+  cursor.close()
+
+  # Data already exists (duplication)
+  if isinstance(e, UniqueViolation):
+    raise HTTPException(status_code=409, detail="Already exists")
+  
+  # Invalid reference error, data does not exist
+  elif isinstance(e, ForeignKeyViolation):
+    raise HTTPException(status_code=400, detail="Invalid reference")
+  
+  # Internal server
+  else:
+    raise HTTPException(status_code=500, detail="Internal server error")
+  
 # return all the sections
 def get_sections():
   # create a cursor to execute SQL
@@ -93,243 +112,266 @@ def create_post(post):
   # create a cursor to execute SQL
   cursor = conn.cursor()
 
-  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
-  cursor.execute(
-    """
-      INSERT INTO posts(user_id, folder_id, title, content)
-      VALUES (%s, %s, %s, %s)
-      RETURNING post_id
-    """,
-    (1, post.folder_id, post.title, post.content)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
-  post_id = row[0]
+  try:
+    # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+    cursor.execute(
+      """
+        INSERT INTO posts(user_id, folder_id, title, content)
+        VALUES (%s, %s, %s, %s)
+        RETURNING post_id
+      """,
+      (1, post.folder_id, post.title, post.content)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+    post_id = row[0]
+    # permanently save changes to DB and close
+    conn.commit()
+    cursor.close()
+    return {"post_id": post_id}
 
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"post_id": post_id}
+  except Exception as e:
+    handle_error(e, cursor)
 
 # update a post
 def update_post(post_id, post):
   # create a cursor to execute SQL
   cursor = conn.cursor()
 
-  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
-  cursor.execute(
-    """
-      UPDATE posts
-      SET title = %s, content = %s, updated_at = NOW()
-      WHERE post_id = %s AND user_id = %s
-      RETURNING post_id
-    """,
-    (post.title, post.content, post_id, 1)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
+  try:
+    # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+    cursor.execute(
+      """
+        UPDATE posts
+        SET title = %s, content = %s, updated_at = NOW()
+        WHERE post_id = %s AND user_id = %s
+        RETURNING post_id
+      """,
+      (post.title, post.content, post_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
 
-  if row is None:
+    # http 404: resource does not exist
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Post {post_id} does not exist")
+    
     conn.commit()
     cursor.close()
-    return {"error": "Post not found or unauthorized"}
-
-  post_id = row[0]
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"post_id": post_id}
+    post_id = row[0]
+    return {"post_id": post_id}
+  
+  except Exception as e:
+    handle_error(e, cursor)
 
 # delete a post
 def delete_post(post_id):
   # create a cursor to execute sql
   cursor = conn.cursor()
 
-  # execute sql query
-  cursor.execute(
-    """
-      DELETE FROM posts
-      WHERE post_id = %s AND user_id = %s
-      RETURNING post_id
-    """,
-    (post_id, 1)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
+  try:
+    # execute sql query
+    cursor.execute(
+      """
+        DELETE FROM posts
+        WHERE post_id = %s AND user_id = %s
+        RETURNING post_id
+      """,
+      (post_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
 
-  if row is None:
+    # http 404: resource does not exist
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Post {post_id} does not exist")
+    
     conn.commit()
     cursor.close()
-    return {"error": "Post not found or unauthorized"}
+    return {"deleted": True}
   
-  post_id = row[0]
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"message": "Post deleted successfully"}
+  except Exception as e:
+    handle_error(e, cursor)
 
 # create a folder
 def create_folder(folder):
   # create a cursor to execute SQL
   cursor = conn.cursor()
 
-  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
-  cursor.execute(
-    """
-      INSERT INTO folders(user_id, section_id, name, description, slug)
-      VALUES(%s, %s, %s, %s, %s)
-      RETURNING folder_id
-    """,
-    (1, folder.section_id, folder.name, folder.description, folder.slug)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
-  folder_id = row[0]
+  try:
+    # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+    cursor.execute(
+      """
+        INSERT INTO folders(user_id, section_id, name, description, slug)
+        VALUES(%s, %s, %s, %s, %s)
+        RETURNING folder_id
+      """,
+      (1, folder.section_id, folder.name, folder.description, folder.slug)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+    folder_id = row[0]
+    # permanently save changes to DB and close
+    conn.commit()
+    cursor.close()
+    return {"folder_id": folder_id}
 
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"folder_id": folder_id}
+  except Exception as e:
+    handle_error(e, cursor)
 
 # update a folder
 def update_folder(folder_id, folder):
   cursor = conn.cursor()
   
-  cursor.execute(
-    """
-      UPDATE folders
-      SET name = %s, description = %s, slug = %s, updated_at = NOW()
-      WHERE folder_id = %s AND user_id = %s
-      RETURNING folder_id
-    """,
-    (folder.name, folder.description, folder.slug, folder_id, 1)
-  )
-  row = cursor.fetchone()
-  
-  if row is None:
+  try:
+    cursor.execute(
+      """
+        UPDATE folders
+        SET name = %s, description = %s, slug = %s, updated_at = NOW()
+        WHERE folder_id = %s AND user_id = %s
+        RETURNING folder_id
+      """,
+      (folder.name, folder.description, folder.slug, folder_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+
+    # http 404: resource does not exist
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Folder {folder_id} does not exist")
+    
     conn.commit()
     cursor.close()
-    return {"error": "Folder not found or unauthorized"}
+    folder_id = row[0]
+    return {"folder_id": folder_id}
   
-  conn.commit()
-  cursor.close()
-  return {"folder_id": row[0]}
+  except Exception as e:
+    handle_error(e, cursor)
 
 # delete a folder
 def delete_folder(folder_id):
   # create a cursor to execute sql
   cursor = conn.cursor()
 
-  # execute sql query
-  cursor.execute(
-    """
-      DELETE FROM folders
-      WHERE folder_id = %s AND user_id = %s
-      RETURNING folder_id
-    """,
-    (folder_id, 1)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
+  try:
+    # execute sql query
+    cursor.execute(
+      """
+        DELETE FROM folders
+        WHERE folder_id = %s AND user_id = %s
+        RETURNING folder_id
+      """,
+      (folder_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
 
-  if row is None:
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Folder {folder_id} not found")
+    
     conn.commit()
     cursor.close()
-    return {"error": "Folder not found or unauthorized"}
+    return {"deleted": True}
   
-  folder_id = row[0]
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"message": "Folder deleted successfully"}
+  except Exception as e:
+    handle_error(e, cursor)
 
 # create a personal note
 def create_note(note):
   # create a cursor to execute SQL
   cursor = conn.cursor()
 
-  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
-  cursor.execute(
-    """
-      INSERT INTO notes(user_id, post_id, body)
-      VALUES(%s, %s, %s)
-      RETURNING note_id
-    """,
-    (1, note.post_id, note.body)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
-  note_id = row[0]
+  try:
+    # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+    cursor.execute(
+      """
+        INSERT INTO notes(user_id, post_id, body)
+        VALUES(%s, %s, %s)
+        RETURNING note_id
+      """,
+      (1, note.post_id, note.body)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+    note_id = row[0]
+    # permanently save changes to DB and close
+    conn.commit()
+    cursor.close()
+    return {"note_id": note_id}
 
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"note_id": note_id}
+  except Exception as e:
+    handle_error(e, cursor)
 
 # update a personal note
 def update_note(note_id, note):
   # create a cursor to execute SQL
   cursor = conn.cursor()
 
-  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
-  cursor.execute(
-    """
-      UPDATE notes
-      SET body = %s, updated_at = NOW()
-      WHERE note_id = %s AND user_id = %s
-      RETURNING note_id 
-    """,
-    (note.body, note_id, 1)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
+  try:
+    # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+    cursor.execute(
+      """
+        UPDATE notes
+        SET body = %s, updated_at = NOW()
+        WHERE note_id = %s AND user_id = %s
+        RETURNING note_id 
+      """,
+      (note.body, note_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
 
-  if row is None:
+    # http 404: resource does not exist
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Note {note_id} does not exist")
+    
     conn.commit()
     cursor.close()
-    return {"error": "Note not found or unauthorized"}
-
-  note_id = row[0]
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"note_id": note_id}
+    note_id = row[0]
+    return {"note_id": note_id}
+  
+  except Exception as e:
+    handle_error(e, cursor)
 
 # delete a personal note
 def delete_note(note_id):
   # create a cursor to execute SQL
   cursor = conn.cursor()
 
-  # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
-  cursor.execute(
-    """
-      DELETE FROM notes
-      WHERE note_id = %s AND user_id = %s
-      RETURNING note_id
-    """,
-    (note_id, 1)
-  )
-  # store returned tuple
-  row = cursor.fetchone()
+  try:
+    # execute sql query (RETURNING immediately returns the inserted row instead of separate search)
+    cursor.execute(
+      """
+        DELETE FROM notes
+        WHERE note_id = %s AND user_id = %s
+        RETURNING note_id
+      """,
+      (note_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
 
-  if row is None:
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
+    
     conn.commit()
     cursor.close()
-    return {"error": "Note not found or unauthorized"}
-
-  note_id = row[0]
-  # permanently save changes to DB and close
-  conn.commit()
-  cursor.close()
-
-  return {"message": "Note deleted successfully"}
+    return {"deleted": True}
+  
+  except Exception as e:
+    handle_error(e, cursor)
 
 # return a personal note
 def get_notes(post_id):
@@ -364,3 +406,141 @@ def get_notes(post_id):
   
   return response
 
+# upvote or downvote
+def create_vote(vote):
+  # create cursor
+  cursor = conn.cursor()
+  
+  try:
+    # execute sql
+    cursor.execute(
+      """
+        INSERT INTO votes(post_id, user_id, is_upvote, created_at)
+        VALUES(%s, %s, %s, NOW())
+        RETURNING post_id
+      """,
+      (vote.post_id, 1, vote.is_upvote)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+    post_id = row[0]
+    # permanently save changes to DB and close
+    conn.commit()
+    cursor.close()
+    return {"post_id": post_id}
+
+  except Exception as e:
+    handle_error(e, cursor)
+
+# update vote
+def update_vote(post_id, vote):
+  # create a cursor
+  cursor = conn.cursor()
+
+  try:  
+    cursor.execute(
+      """
+        UPDATE votes
+        SET is_upvote = %s
+        WHERE post_id = %s AND user_id = %s
+        RETURNING post_id
+      """,
+      (vote.is_upvote, post_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+
+    # http 404: resource does not exist
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Vote {post_id} does not exist")
+    
+    conn.commit()
+    cursor.close()
+    post_id = row[0]
+    return {"post_id": post_id}
+  
+  except Exception as e:
+    handle_error(e, cursor)
+
+# return user's vote
+def get_votes(post_id):
+  # create a cursor
+  cursor = conn.cursor()
+  
+  # execute SQL
+  cursor.execute(
+    """
+      SELECT is_upvote
+      FROM votes
+      WHERE post_id = %s AND user_id = %s
+    """,
+    (post_id, 1)
+  )
+  # upvote
+  row = cursor.fetchone()
+  cursor.close()
+  
+  if row is None:
+    return None
+  
+  vote_id = row[0]
+  
+  return {"is_upvote": vote_id}
+
+# return net votes
+def get_post_votes(post_id):
+  cursor = conn.cursor()
+  
+  cursor.execute(
+    """
+      SELECT 
+        COUNT(CASE WHEN is_upvote = true THEN 1 END) as upvotes,
+        COUNT(CASE WHEN is_upvote = false THEN 1 END) as downvotes
+      FROM votes
+      WHERE post_id = %s
+    """,
+    (post_id,)
+  )
+  row = cursor.fetchone()
+  upvotes = row[0]
+  downvotes = row[1]
+
+  cursor.close()
+  
+  return {
+    "upvotes": upvotes,
+    "downvotes": downvotes,
+    "net": upvotes - downvotes
+  }
+
+# delete user's vote
+def delete_vote(post_id):
+  cursor = conn.cursor()
+  
+  try:
+    cursor.execute(
+      """
+        DELETE FROM votes
+        WHERE post_id = %s AND user_id = %s
+        RETURNING post_id
+      """,
+      (post_id, 1)
+    )
+    # store returned tuple
+    row = cursor.fetchone()
+
+    # http 404: resource does not exist
+    if row is None:
+      conn.rollback()
+      cursor.close()
+      raise HTTPException(status_code=404, detail=f"Vote {post_id} does not exist")
+    
+    conn.commit()
+    cursor.close()
+    post_id = row[0]
+    return {"deleted": True}
+  
+  except Exception as e:
+    handle_error(e, cursor)
