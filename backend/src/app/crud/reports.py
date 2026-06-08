@@ -1,6 +1,6 @@
 from ..db import conn
 from ..schemas import ReportResponse
-from .error_handler import handle_error
+from .exception import handle_error
 
 # create report
 def create_report(post_id, reason):

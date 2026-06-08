@@ -1,5 +1,5 @@
 from ..db import conn
-from .error_handler import handle_error
+from .exception import handle_error
 from fastapi import HTTPException
 
 # mark a section favorite

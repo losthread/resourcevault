@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routes import favorite_sections, folders, notes, posts, reports, saved_posts, sections, tags, votes
+from .routes import contribution, favorite_sections, folders, notes, posts, reports, saved_posts, sections, tags, votes
 import uvicorn
 
 # fastAPI app instance - contains: settings, middleware, endpoints
@@ -7,6 +7,7 @@ import uvicorn
 app = FastAPI()
 
 # Include the router instance from routes.py into app
+app.include_router(contribution.router)
 app.include_router(favorite_sections.router)
 app.include_router(folders.router)
 app.include_router(notes.router)

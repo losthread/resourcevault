@@ -1,6 +1,6 @@
 from ..db import conn
 from ..schemas import PostResponse
-from .error_handler import handle_error
+from .exception import handle_error
 from fastapi import HTTPException
 
 # return all the posts

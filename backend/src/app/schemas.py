@@ -82,3 +82,20 @@ class ReportResponse(BaseModel):
   post_id: int
   reason: str
   created_at: datetime
+
+# contribution requests
+class ContributionCreate(BaseModel):
+  post_id: int
+  suggested_content: str
+  issue: str
+
+class ContributionResponse(BaseModel):
+  contribution_request_id: int
+  suggested_content: str
+  issue: str
+  status: str
+  created_at: datetime
+  updated_at: datetime
+
+class ContributionStatusUpdate(BaseModel):
+  status: str  # "Accepted", "Rejected", "Pending"
