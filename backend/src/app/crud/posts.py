@@ -11,6 +11,7 @@ def get_posts():
     """
       SELECT post_id, folder_id, user_id, title, content, created_at, updated_at 
       FROM posts
+      ORDER BY created_at ASC
     """
   )
 
@@ -44,6 +45,7 @@ def get_posts_by_folder(folder_id):
     """
       SELECT post_id, folder_id, user_id, title, content, created_at, updated_at 
       FROM posts
+      ORDER BY created_at ASC
       WHERE folder_id = %s
     """,
     (folder_id,)

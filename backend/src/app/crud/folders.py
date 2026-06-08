@@ -7,11 +7,18 @@ from fastapi import HTTPException
 def get_folders():
   # create a cursor to execute SQL
   cursor = conn.cursor()
-  cursor.execute("SELECT folder_id, section_id, user_id, name, description, slug, created_at, updated_at FROM folders")
-
+  cursor.execute(
+    """
+      SELECT folder_id, section_id, user_id, name, description, slug, created_at, updated_at 
+      FROM folders
+    """
+  )
 
   # fetch query result as a list of tuples
   folders = cursor.fetchall()
+
+  # close cursor
+  cursor.close()
 
   # convert list to FolderResponse pydantic object 
   response = list()
@@ -28,8 +35,42 @@ def get_folders():
     )
     response.append(folder)
 
+  # return json
+  return response
+
+# return all folders inside a particular section
+def get_folders_by_section(section_id):
+  # create a cursor to execute SQL
+  cursor = conn.cursor()
+  cursor.execute(
+    """
+      SELECT folder_id, section_id, user_id, name, description, slug, created_at, updated_at 
+      FROM folders
+      WHERE section_id = %s
+    """,
+    (section_id,)
+  )
+
+  # fetch query result as a list of tuples
+  folders = cursor.fetchall()
+
   # close cursor
   cursor.close()
+
+  # convert list to FolderResponse pydantic object 
+  response = list()
+  for row in folders:
+    folder = FolderResponse(
+      folder_id=row[0],
+      section_id=row[1],
+      user_id=row[2],
+      name=row[3],
+      description=row[4],
+      slug=row[5],
+      created_at=row[6],
+      updated_at=row[7]
+    )
+    response.append(folder)
 
   # return json
   return response
@@ -70,6 +111,7 @@ def update_folder(folder_id, folder):
         UPDATE folders
         SET name = %s, description = %s, slug = %s, updated_at = NOW()
         WHERE folder_id = %s AND user_id = %s
+        ORDER BY created_at ASC
         RETURNING folder_id
       """,
       (folder.name, folder.description, folder.slug, folder_id, 1)
@@ -106,6 +148,7 @@ def delete_folder(folder_id):
       """
         DELETE FROM folders
         WHERE folder_id = %s AND user_id = %s
+        ORDER BY created_at ASC
         RETURNING folder_id
       """,
       (folder_id, 1)

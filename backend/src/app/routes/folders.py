@@ -9,6 +9,11 @@ router = APIRouter()
 async def get_folders() -> list[FolderResponse]:
   return f.get_folders()
 
+# get all folders inside a section
+@router.get('/sections/{section_id}/folders')
+async def get_folders_by_section(section_id: int) -> list[FolderResponse]:
+  return f.get_folders_by_section(section_id)
+
 # create a folder
 @router.post('/folders')
 async def create_folder(folder: FolderCreate) -> dict:
