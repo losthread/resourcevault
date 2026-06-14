@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from datetime import datetime
 
 # create a contribution request
-def create_contribution(post_id, suggested_content, issue):
+def create_contribution(post_id, suggested_content, issue, user_id):
   cursor = conn.cursor()
   try:
     cursor.execute(
@@ -14,22 +14,25 @@ def create_contribution(post_id, suggested_content, issue):
         VALUES(%s, %s, %s, %s, 'Pending', NOW(), NOW())
         RETURNING contribution_request_id
       """,
-      (post_id, 1, suggested_content, issue)
+      (post_id, user_id, suggested_content, issue)
     )
     row = cursor.fetchone()
     conn.commit()
     cursor.close()
     return {"contribution_request_id": row[0]}
+  
   except Exception as e:
     handle_error(e, cursor)
 
+# get all contributions on a post
 def get_contributions(post_id):
   cursor = conn.cursor()
   cursor.execute(
     """
-      SELECT contribution_request_id, suggested_content, issue, status, created_at, updated_at
-      FROM contribution_requests 
-      WHERE post_id = %s
+      SELECT cr.contribution_request_id, cr.suggested_content, cr.issue, cr.status, cr.created_at, cr.updated_at, u.user_id, u.username
+      FROM contribution_requests cr
+      JOIN users u ON cr.user_id = u.user_id
+      WHERE cr.post_id = %s
     """,
     (post_id,)
   )
@@ -44,21 +47,25 @@ def get_contributions(post_id):
       issue=row[2],
       status=row[3],
       created_at=row[4],
-      updated_at=row[5]
+      updated_at=row[5],
+      user_id=row[6],
+      username=row[7]
     )
     response.append(contrib)
   
   return response
 
-def get_contributions_per_user(post_id):
+# get all contributions by a user
+def get_contributions_per_user(user_id):
   cursor = conn.cursor()
   cursor.execute(
     """
-      SELECT contribution_request_id, suggested_content, issue, status, created_at, updated_at
-      FROM contribution_requests 
-      WHERE post_id = %s AND user_id = %s
+      SELECT cr.contribution_request_id, cr.suggested_content, cr.issue, cr.status, cr.created_at, cr.updated_at, u.user_id, u.username
+      FROM contribution_requests cr
+      JOIN users u ON cr.user_id = u.user_id
+      WHERE cr.user_id = %s
     """,
-    (post_id, 1)
+    (user_id,)
   )
   contributions = cursor.fetchall()
   cursor.close()
@@ -71,14 +78,47 @@ def get_contributions_per_user(post_id):
       issue=row[2],
       status=row[3],
       created_at=row[4],
-      updated_at=row[5]
+      updated_at=row[5],
+      user_id=row[6],
+      username=row[7]
+    )
+    response.append(contrib)
+  
+  return response
+
+# get contributions by a user under a post
+def get_contributions_per_user_by_post(post_id, user_id):
+  cursor = conn.cursor()
+  cursor.execute(
+    """
+      SELECT cr.contribution_request_id, cr.suggested_content, cr.issue, cr.status, cr.created_at, cr.updated_at, u.user_id, u.username
+      FROM contribution_requests cr
+      JOIN users u ON cr.user_id = u.user_id
+      WHERE cr.post_id = %s AND cr.user_id = %s
+    """,
+    (post_id, user_id)
+  )
+  contributions = cursor.fetchall()
+  cursor.close()
+  
+  response = list()
+  for row in contributions:
+    contrib = ContributionResponse(
+      contribution_request_id=row[0],
+      suggested_content=row[1],
+      issue=row[2],
+      status=row[3],
+      created_at=row[4],
+      updated_at=row[5],
+      user_id=row[6],
+      username=row[7]
     )
     response.append(contrib)
   
   return response
 
 # accept or reject a contribution request
-def update_contribution_status(contribution_request_id, status):
+def update_contribution_status(contribution_request_id, status, user_id):
   cursor = conn.cursor()
 
   try:
@@ -87,9 +127,9 @@ def update_contribution_status(contribution_request_id, status):
       """
         SELECT post_id, suggested_content
         FROM contribution_requests
-        WHERE contribution_request_id = %s
+        WHERE contribution_request_id = %s AND user_id = %s
       """,
-      (contribution_request_id,)
+      (contribution_request_id, user_id)
     )
     contrib_row = cursor.fetchone()
 

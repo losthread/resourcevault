@@ -96,6 +96,8 @@ class ContributionResponse(BaseModel):
   status: str
   created_at: datetime
   updated_at: datetime
+  user_id: int
+  username: str
 
 class ContributionStatusUpdate(BaseModel):
   status: str  # "Accepted", "Rejected", "Pending"

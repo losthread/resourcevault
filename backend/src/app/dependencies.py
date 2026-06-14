@@ -12,4 +12,4 @@ def get_user_id(authorization: str = Header(None)):
   if user_id is None:
     raise HTTPException(status_code=401, detail="Invalid or expired token")
   
-  return user_id  
+  return user_id
